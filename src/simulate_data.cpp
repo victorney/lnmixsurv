@@ -1,38 +1,37 @@
 // -*- mode: C++; c-indent-level: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 
 #include <RcppArmadillo.h>
-#include <RcppGSL.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <random>
+#include <cmath>
 
 using namespace Rcpp;
  
  // ------ RNG Framework ------
 
- // Function to initialize the GSL random number generator
- void initializeRNG_simulate_data(const long long int& seed, gsl_rng* rng_device) {
-   gsl_rng_set(rng_device, seed);
- }
-
 // Function used to set a seed
-void setSeed_simulate_data(const long long int& seed, gsl_rng* rng_device) {
-  initializeRNG_simulate_data(seed, rng_device);
+void setSeed_simulate_data(const long long int& seed, std::mt19937& rng_device) {
+  rng_device.seed(seed);
 }
 
 // Generates a random observation from Normal(mu, sd^2)
-double rnorm_simulate_data(const double& mu, const double& sd, gsl_rng* rng_device) {
-  return gsl_ran_gaussian(rng_device, sd) + mu;
+double rnorm_simulate_data(const double& mu, const double& sd, std::mt19937& rng_device) {
+  std::normal_distribution<double> dist(mu, sd);
+  return dist(rng_device);
 }
 
 // [[Rcpp::export]]
 arma::vec simulate_y(const arma::mat& X, const arma::mat& beta, const arma::vec& phi, const arma::ivec& delta, const arma::ivec& groups, long long int starting_seed) {
   // Initialize the random number generator
-  gsl_rng* global_rng = gsl_rng_alloc(gsl_rng_default);
+
+  std::mt19937 global_rng;
+
+  // setting global seed to start the sampler
   setSeed_simulate_data(starting_seed, global_rng);
-  
+
   arma::vec sd = 1.0 / arma::sqrt(phi);
   int n = X.n_rows;
   arma::vec out(n);
