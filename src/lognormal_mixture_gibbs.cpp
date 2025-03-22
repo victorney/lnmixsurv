@@ -1,13 +1,13 @@
 // -*- mode: C++; c-indent-level: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 
 #include <RcppArmadillo.h>
-#include <RcppGSL.h>
 #include <RcppParallel.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <random>
+#include <cmath>
 
 using namespace Rcpp;
 
@@ -16,19 +16,9 @@ using namespace Rcpp;
  
 // ------ RNG Framework ------
 
-// Function to initialize the GSL random number generator with MT19937
-void initializeRNG(const long long int& seed, gsl_rng*& rng_device) {
-    rng_device = gsl_rng_alloc(gsl_rng_mt19937);  // Allocate MT19937 RNG
-    gsl_rng_set(rng_device, seed);  // Set the seed
-}
-
 // Function used to set a seed
-void setSeed(const long long int& seed, gsl_rng*& rng_device) {
-    if (rng_device == nullptr) {
-        initializeRNG(seed, rng_device);  // Initialize if not already done
-    } else {
-        gsl_rng_set(rng_device, seed);  // Reset the seed if already initialized
-    }
+void setSeed(const long long int& seed, std::mt19937& rng_device) {
+  rng_device.seed(seed);
 }
 
 // Squares a double
@@ -37,23 +27,26 @@ double square(const double& x) {
 }
 
 // Generates a random observation from Uniform(0, 1) 
-double runif_0_1(gsl_rng* rng_device) {
-  return gsl_rng_uniform(rng_device);
+double runif_0_1(std::mt19937& rng_device) {
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+  return dist(rng_device);
 }
 
 // Generates a random observation from Normal(mu, sd^2)
-double rnorm_(const double& mu, const double& sd, gsl_rng* rng_device) {
-  return gsl_ran_gaussian(rng_device, sd) + mu;
+double rnorm_(const double& mu, const double& sd, std::mt19937& rng_device) {
+  std::normal_distribution<double> dist(mu, sd);
+  return dist(rng_device);
 }
 
 // Generates a random observation from Gamma(alpha, beta), with mean alpha/beta
-double rgamma_(const double& alpha, const double& beta, gsl_rng* rng_device) {
-  return gsl_ran_gamma(rng_device, alpha, 1.0 / beta);
+double rgamma_(const double& alpha, const double& beta, std::mt19937& rng_device) {
+  std::gamma_distribution<double> dist(alpha, 1.0 / beta);
+  return dist(rng_device);
 }
 
 // Sample one value (k-dimensional) from a 
 // Dirichlet(alpha_1, alpha_2, ..., alpha_k)
-arma::vec rdirichlet(const arma::vec& alpha, gsl_rng* rng_device) {
+arma::vec rdirichlet(const arma::vec& alpha, std::mt19937& rng_device) {
   int K = alpha.n_elem;
   arma::vec sample(K);
   
@@ -66,7 +59,7 @@ arma::vec rdirichlet(const arma::vec& alpha, gsl_rng* rng_device) {
 }
 
 // Generates a random observation from a MultivariateNormal(mean, covariance)
-arma::vec rmvnorm(const arma::vec& mean, const arma::mat& covariance, gsl_rng* rng_device) {
+arma::vec rmvnorm(const arma::vec& mean, const arma::mat& covariance, std::mt19937& rng_device) {
   int numDims = mean.n_elem;
   arma::vec sample(numDims);
   
@@ -103,7 +96,7 @@ arma::vec repl(const double& x, const int& times) {
 // Sample a random object from a given vector
 // Note: it just samples numeric objects (because of c++ class definition) and just one object per time.
 int numeric_sample(const arma::ivec& groups,
-                   const arma::vec& probs, gsl_rng* rng_device) {
+                   const arma::vec& probs, std::mt19937& rng_device) {
   double u = runif_0_1(rng_device);
   double cumulativeProb = 0.0;
   int n = probs.n_elem;
@@ -121,7 +114,7 @@ int numeric_sample(const arma::ivec& groups,
 
 void sample_groups_advanced(const int& G, const arma::vec& y, const arma::vec& eta, 
                             const arma::vec& sd, const arma::mat& beta,
-                            const arma::mat& X, gsl_rng* rng_device,
+                            const arma::mat& X, std::mt19937& rng_device,
                             arma::ivec& vec_groups) {
   // Initializing variables used for sampling groups
   int n = X.n_rows;
@@ -213,7 +206,7 @@ void sample_groups_advanced(const int& G, const arma::vec& y, const arma::vec& e
 
 void sample_groups_fast(const int& G, const arma::vec& y, const arma::vec& eta, 
                         const arma::vec& sd, const arma::mat& beta,
-                        const arma::mat& X, gsl_rng* rng_device, arma::ivec& vec_groups) {
+                        const arma::mat& X, std::mt19937& rng_device, arma::ivec& vec_groups) {
   arma::vec probs(G);
   arma::mat mean = X * beta.t();
   
@@ -237,7 +230,7 @@ void sample_groups_fast(const int& G, const arma::vec& y, const arma::vec& eta,
 // Function used to sample the latent groups for each observation.
 arma::ivec sample_groups(const int& G, const arma::vec& y, const arma::vec& eta, 
                          const arma::vec& phi, const arma::mat& beta,
-                         const arma::mat& X, gsl_rng* rng_device,
+                         const arma::mat& X, std::mt19937& rng_device,
                          const arma::ivec& groups_old, const bool& fast_groups) {
   
   arma::ivec vec_groups = groups_old;
@@ -254,7 +247,7 @@ arma::ivec sample_groups(const int& G, const arma::vec& y, const arma::vec& eta,
 
 // Function used to sample random groups for each observation proportional to the eta parameter
 arma::ivec sample_groups_start(const int& G, const arma::vec& y, 
-                               const arma::vec& eta, gsl_rng* rng_device) {
+                               const arma::vec& eta, std::mt19937& rng_device) {
   int n = y.n_rows;
   arma::ivec vec_groups(n);
   
@@ -265,7 +258,7 @@ arma::ivec sample_groups_start(const int& G, const arma::vec& y,
   return(vec_groups);
 }
 
-double augment_yi(const double& yi, const double& mean, const double& sd, gsl_rng* rng_device) {
+double augment_yi(const double& yi, const double& mean, const double& sd, std::mt19937& rng_device) {
   double out_i = yi; // value to augment
   int count = 0; // avoid infite loop
   
@@ -291,7 +284,7 @@ double augment_yi(const double& yi, const double& mean, const double& sd, gsl_rn
 // failure time.
 arma::vec augment(const int& G, const arma::vec& y, const arma::ivec& groups,
                   const arma::ivec& delta, const arma::vec& sd, 
-                  const arma::mat& beta, const arma::mat& X, gsl_rng* rng_device) {
+                  const arma::mat& beta, const arma::mat& X, std::mt19937& rng_device) {
   arma::vec out = y;
   arma::mat mean = X * beta.t(); // pre-compute the mean matrix
   arma::uvec censored_indexes = arma::find(delta == 0); // finding which observations are censored
@@ -394,7 +387,7 @@ arma::ivec sample_groups_from_W(const arma::mat& W, const int& N) {
 }
 
 // Sample initial values for the EM parameters
-void sample_initial_values_em(arma::vec& eta, arma::vec& phi, arma::mat& beta, arma::vec& sd, const int& G, const int& k, gsl_rng* rng_device) {
+void sample_initial_values_em(arma::vec& eta, arma::vec& phi, arma::mat& beta, arma::vec& sd, const int& G, const int& k, std::mt19937& rng_device) {
   eta = rdirichlet(repl(rgamma_(1.0, 1.0, rng_device), G), rng_device);
   
   for (int g = 0; g < G; g++) {
@@ -423,7 +416,7 @@ void update_beta_g(const arma::vec& colg, const arma::mat& X, const int& g, cons
 
 // Update the parameter phi(g)
 void update_phi_g(const double& denom, const arma::uvec& censored_indexes, const arma::mat& X, const arma::vec& colg, const arma::vec& y, const arma::vec& z,
-                  const arma::vec& sd, const arma::mat& beta, const arma::vec& var, const int& g, const int& n, arma::vec& phi, gsl_rng* rng_device,
+                  const arma::vec& sd, const arma::mat& beta, const arma::vec& var, const int& g, const int& n, arma::vec& phi, std::mt19937& rng_device,
                   double& alpha, double& quant) {
   alpha = 0.0;
   quant = arma::as_scalar(arma::square(z - (X * beta.row(g).t())).t() * colg);
@@ -453,7 +446,7 @@ void update_phi_g(const double& denom, const arma::uvec& censored_indexes, const
 
 // Update the model parameters with EM
 void update_em_parameters(const int& n, const int& G, arma::vec& eta, arma::mat& beta, arma::vec& phi, const arma::mat& W, const arma::mat& X, 
-                          const arma::vec& y, const arma::vec& z, const arma::uvec& censored_indexes, const arma::vec& sd, gsl_rng* rng_device,
+                          const arma::vec& y, const arma::vec& z, const arma::uvec& censored_indexes, const arma::vec& sd, std::mt19937& rng_device,
                           double& quant, double& denom, double& alpha, arma::sp_mat& Wg, arma::vec& colg) {
   arma::vec var = arma::square(sd);
   
@@ -501,7 +494,7 @@ double loglik_em(const arma::vec& eta, const arma::vec& sd, const arma::mat& W, 
 // EM for the lognormal mixture model.
 arma::field<arma::mat> lognormal_mixture_em(const int& Niter, const int& G, const arma::vec& t, const arma::ivec& delta, const arma::mat& X,
                                             const bool& better_initial_values, const int& N_em,
-                                            const int& Niter_em, const bool& internal, const bool& show_output, gsl_rng* rng_device) {
+                                            const int& Niter_em, const bool& internal, const bool& show_output, std::mt19937& rng_device) {
   
   int n = X.n_rows;
   int k = X.n_cols;
@@ -615,7 +608,7 @@ arma::field<arma::mat> lognormal_mixture_em(const int& Niter, const int& G, cons
 
 // Setting parameter's values for the first Gibbs iteration
 void first_iter_gibbs(const arma::field<arma::mat>& em_params, arma::vec& eta, arma::mat& beta, arma::vec& phi, const int& em_iter, const int& G, const arma::vec& y,
-                      arma::vec& sd, arma::ivec& groups, const arma::mat& X, const bool& use_W, const arma::ivec& delta, gsl_rng* rng_device, const bool& fast_groups) {
+                      arma::vec& sd, arma::ivec& groups, const arma::mat& X, const bool& use_W, const arma::ivec& delta, std::mt19937& rng_device, const bool& fast_groups) {
   arma::ivec groups_start(y.n_rows);
   int p = X.n_cols;
   if (em_iter != 0) {
@@ -649,7 +642,7 @@ void first_iter_gibbs(const arma::field<arma::mat>& em_params, arma::vec& eta, a
 
 // Function to update groups
 void update_groups_gibbs(const int& iter, const bool& use_W, const arma::field<arma::mat>& em_params, const int& G, const arma::vec& y_aug, 
-                         const arma::vec& eta, const arma::mat& beta, const arma::vec& phi, const arma::mat& X, arma::ivec& groups, gsl_rng* rng_device,
+                         const arma::vec& eta, const arma::mat& beta, const arma::vec& phi, const arma::mat& X, arma::ivec& groups, std::mt19937& rng_device,
                          const bool& fast_groups) {
 
   arma::ivec groups_old = groups;
@@ -661,7 +654,7 @@ void update_groups_gibbs(const int& iter, const bool& use_W, const arma::field<a
 }
 
 // Avoiding groups with zero number of observations in it (causes numerical issues)
-void avoid_group_with_zero_allocation(arma::ivec& n_groups, arma::ivec& groups, const int& G, const int& N, gsl_rng* rng_device) {
+void avoid_group_with_zero_allocation(arma::ivec& n_groups, arma::ivec& groups, const int& G, const int& N, std::mt19937& rng_device) {
   int idx = 0;
   int m;
   
@@ -685,11 +678,11 @@ void avoid_group_with_zero_allocation(arma::ivec& n_groups, arma::ivec& groups, 
   }
 }
 
-double update_phi_g_gibbs(const int& n_groups_g, const arma::vec& linearComb, gsl_rng* rng_device) {
+double update_phi_g_gibbs(const int& n_groups_g, const arma::vec& linearComb, std::mt19937& rng_device) {
   return rgamma_(static_cast<double>(n_groups_g)  / 2.0 + 0.01, (1.0 / 2.0) * arma::as_scalar(linearComb.t() * linearComb) + 0.01, rng_device);
 }
 
-arma::rowvec update_beta_g_gibbs(const double& phi_g, const arma::mat& Xg, const arma::mat& Xgt, const arma::vec& yg, gsl_rng* rng_device) {
+arma::rowvec update_beta_g_gibbs(const double& phi_g, const arma::mat& Xg, const arma::mat& Xgt, const arma::vec& yg, std::mt19937& rng_device) {
   arma::rowvec out;
   arma::mat comb = phi_g * Xgt * Xg + arma::diagmat(repl(1.0 / 1000.0, Xg.n_cols));
   arma::mat Sg;
@@ -712,7 +705,7 @@ arma::rowvec update_beta_g_gibbs(const double& phi_g, const arma::mat& Xg, const
 
 // update all the Gibbs parameters
 void update_gibbs_parameters(const int& G, const arma::mat& X, const arma::vec& y_aug, const arma::ivec& n_groups, const arma::ivec& groups, 
-                             arma::vec& eta, arma::mat& beta, arma::vec& phi, gsl_rng* rng_device) {
+                             arma::vec& eta, arma::mat& beta, arma::vec& phi, std::mt19937& rng_device) {
   
   arma::mat Xg;
   arma::mat Xgt;
@@ -750,9 +743,9 @@ arma::mat lognormal_mixture_gibbs_implementation(const int& Niter, const int& em
                                                  const bool& show_output, const int& chain_num,
                                                  const bool& use_W, const bool& better_initial_values,
                                                  const int& Niter_em, const int& N_em, const bool& fast_groups) {
-  
-  gsl_rng* global_rng = gsl_rng_alloc(gsl_rng_default);
-  
+
+  std::mt19937 global_rng;
+
   // setting global seed to start the sampler
   setSeed(starting_seed, global_rng);
   
@@ -910,8 +903,8 @@ arma::field<arma::mat> lognormal_mixture_em_implementation(const int& Niter, con
                                               const bool& better_initial_values, const int& N_em,
                                               const int& Niter_em, const bool& show_output) {
   
-  gsl_rng* global_rng = gsl_rng_alloc(gsl_rng_default);
-  
+  std::mt19937 global_rng;
+
   // setting global seed to start the sampler
   setSeed(starting_seed, global_rng);
   
