@@ -23,6 +23,7 @@ survival_ln_mixture(
   number_em_search = 200,
   iteration_em_search = 1,
   fast_groups = TRUE,
+  data_augmentation = TRUE,
   ...
 )
 
@@ -58,13 +59,15 @@ The number of warmup iterations should be smaller than iter.}
 
 \item{starting_seed}{Starting seed for the sampler. If not specified by the user, uses a random integer between 1 and 2^28 This way we ensure, when the user sets a seed in R, that this is passed into the C++ code.}
 
-\item{use_W}{Specifies is the W (groups weight's matrix for each observation) should be used from EM. It holds W constant through the code, resulting in a faster Bayesian Inference (close to what Empirical Bayes would do). It may helps generating credible intervals for the survival and hazard curves, using the information from the previous EM iteration. Make sure the EM have converged before setting this parameter to true. In doubt, leave this as FALSE, the default.}
+\item{use_W}{Specifies is the W (groups weight's matrix for each observation) should be used from EM. It holds W constant through the MCMC, resulting in a faster Bayesian Inference (close to what Empirical Bayes would do). It may helps generating credible intervals for the survival and hazard curves, using the information from the previous EM iteration. Make sure the EM have converged before setting this parameter to true. In doubt, leave this as FALSE, the default.}
 
 \item{number_em_search}{Number of different EM's to search for maximum likelihoods. Recommended to leave, at least, at 100. This value can be set to 0 to disable the search for maximum likelihood initial values.}
 
 \item{iteration_em_search}{Number of iterations for each of the EM's used to find the maximum likelihoods. Recommended to leave at small values, such as from 1 to 5.}
 
 \item{fast_groups}{Use fast computation of groups allocations probabilities, defaults to TRUE. Setting it to FALSE can increase the computation time (a lot) but it's worth trying if the chains are not converging.}
+
+\item{data_augmentation}{Defaults to TRUE. If sets to FALSE, traditional inference is made using complete likelihood with the survival function.}
 
 \item{...}{Not currently used, but required for extensibility.}
 }
