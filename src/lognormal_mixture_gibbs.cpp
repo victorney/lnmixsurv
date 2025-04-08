@@ -1,7 +1,6 @@
 // -*- mode: C++; c-indent-level: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 
 #include <RcppArmadillo.h>
-#include <RcppParallel.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,9 +10,6 @@
 
 using namespace Rcpp;
 
-// Importing the RcppParallelLibs Function from RcppParallel Package to NAMESPACE
-//' @importFrom RcppParallel RcppParallelLibs
- 
  // ------ RNG Framework ------
  
  // Function used to set a seed
@@ -579,12 +575,12 @@ arma::field<arma::mat> lognormal_mixture_em(const int& Niter, const int& G, cons
           if(init == 0) {
             best_em = em_params;
             if(show_output) {
-              Rcout << "Initial LogLik: " << arma::as_scalar(best_em(5)) << "\n";
+              Rcerr << "Initial LogLik: " << arma::as_scalar(best_em(5)) << "\n";
             }
           } else {
             if(arma::as_scalar(em_params(5)) > arma::as_scalar(best_em(5))) { // comparing logliks
               if(show_output) {
-                Rcout << "Previous maximum: " << arma::as_scalar(best_em(5)) << " | New maximum: " << arma::as_scalar(em_params(5))  << "\n";
+                Rcerr << "Previous maximum: " << arma::as_scalar(best_em(5)) << " | New maximum: " << arma::as_scalar(em_params(5))  << "\n";
               }
               best_em = em_params;
             }
@@ -596,7 +592,7 @@ arma::field<arma::mat> lognormal_mixture_em(const int& Niter, const int& G, cons
         phi = best_em(2);
         W = best_em(3);
         if(show_output) {
-          Rcout << "Starting EM with better initial values" << "\n";
+          Rcerr << "Starting EM with better initial values" << "\n";
         }
       } else {
         sample_initial_values_em(eta, phi, beta, sd, G, k, rng_device);
@@ -612,7 +608,7 @@ arma::field<arma::mat> lognormal_mixture_em(const int& Niter, const int& G, cons
       
       if(show_output) {
         if((iter + 1) % 20 == 0) {
-          Rcout << "EM Iter: " << (iter + 1) << " | " << Niter << "\n";
+          Rcerr << "EM Iter: " << (iter + 1) << " | " << Niter << "\n";
         }
       }
     }
@@ -954,7 +950,7 @@ arma::mat lognormal_mixture_gibbs_implementation(const int& Niter, const int& em
     // starting EM algorithm to find values close to the MLE
     em_params = lognormal_mixture_em(em_iter, G, t, delta, X, better_initial_values, N_em, Niter_em, true, false, global_rng);
   } else if(show_output) {
-    Rcout << "Skipping EM Algorithm" << "\n";
+    Rcerr << "Skipping EM Algorithm" << "\n";
   }
   
   for (int iter = 0; iter < Niter; iter++) {
@@ -1003,12 +999,12 @@ arma::mat lognormal_mixture_gibbs_implementation(const int& Niter, const int& em
     out.row(iter) = newRow;
     
     if((iter % 500 == 0) && show_output) {
-      Rcout << "(Chain " << chain_num << ") MCMC Iter: " << iter << "/" << Niter << "\n";
+      Rcerr << "(Chain " << chain_num << ") MCMC Iter: " << iter << "/" << Niter << "\n";
     }
   }
   
   if(show_output) {
-    Rcout << "Chain " << chain_num << " finished sampling." << "\n";
+    Rcerr << "Chain " << chain_num << " finished sampling." << "\n";
   }
   
   return out;
@@ -1071,7 +1067,7 @@ arma::mat lognormal_mixture_gibbs_implementation_augF(const int& Niter, const in
     // starting EM algorithm to find values close to the MLE
     em_params = lognormal_mixture_em(em_iter, G, t, delta, X, better_initial_values, N_em, Niter_em, true, false, global_rng);
   } else if(show_output) {
-    Rcout << "Skipping EM Algorithm" << "\n";
+    Rcerr << "Skipping EM Algorithm" << "\n";
   }
   
   for (int iter = 0; iter < Niter; iter++) {
@@ -1107,98 +1103,33 @@ arma::mat lognormal_mixture_gibbs_implementation_augF(const int& Niter, const in
     out.row(iter) = newRow;
     
     if((iter % 500 == 0) && show_output) {
-      Rcout << "(Chain " << chain_num << ") MCMC Iter: " << iter << "/" << Niter << "\n";
+      Rcerr << "(Chain " << chain_num << ") MCMC Iter: " << iter << "/" << Niter << "\n";
     }
   }
   
   if(show_output) {
-    Rcout << "Chain " << chain_num << " finished sampling." << "\n";
+    Rcerr << "Chain " << chain_num << " finished sampling." << "\n";
   }
   
   return out;
 }
 
-struct GibbsWorker : public RcppParallel::Worker {
-  const arma::vec& seeds; // starting seeds for each chain
-  arma::cube& out; // store matrix iterations for each chain
-  
-  // other parameters used to fit the model
-  const int& Niter;
-  const int& em_iter;
-  const int& G;
-  const arma::vec& t;
-  const arma::ivec& delta;
-  const arma::mat& X;
-  const bool& show_output;
-  const bool& use_W;
-  const bool& better_initial_values;
-  const int& N_em;
-  const int& Niter_em;
-  const bool& fast_groups;
-
-  // Creating Worker
-  GibbsWorker(const arma::vec& seeds, arma::cube& out, const int& Niter, const int& em_iter, const int& G, const arma::vec& t,
-              const arma::ivec& delta, const arma::mat& X, const bool& show_output, const bool& use_W, const bool& better_initial_values,
-              const int& N_em, const int& Niter_em, const bool& fast_groups) :
-    seeds(seeds), out(out), Niter(Niter), em_iter(em_iter), G(G), t(t), delta(delta), X(X), show_output(show_output), use_W(use_W), better_initial_values(better_initial_values), N_em(N_em), Niter_em(Niter_em), fast_groups(fast_groups) {}
-  
-  void operator()(std::size_t begin, std::size_t end) {
-    for (std::size_t i = begin; i < end; ++i) {
-      usleep(5000 * i); // avoid racing conditions
-      out.slice(i) = lognormal_mixture_gibbs_implementation(Niter, em_iter, G, t, delta, X, seeds(i), show_output, i + 1, use_W, better_initial_values, Niter_em, N_em, fast_groups);
-    }
-  }
-};
-
-struct GibbsWorkerAugF : public RcppParallel::Worker {
-  const arma::vec& seeds; // starting seeds for each chain
-  arma::cube& out; // store matrix iterations for each chain
-  
-  // other parameters used to fit the model
-  const int& Niter;
-  const int& em_iter;
-  const int& G;
-  const arma::vec& t;
-  const arma::ivec& delta;
-  const arma::mat& X;
-  const bool& show_output;
-  const bool& use_W;
-  const bool& better_initial_values;
-  const int& N_em;
-  const int& Niter_em;
-
-  // Creating Worker
-  GibbsWorkerAugF(const arma::vec& seeds, arma::cube& out, const int& Niter, const int& em_iter, const int& G, const arma::vec& t,
-                  const arma::ivec& delta, const arma::mat& X, const bool& show_output, const bool& use_W, const bool& better_initial_values,
-                  const int& N_em, const int& Niter_em) :
-    seeds(seeds), out(out), Niter(Niter), em_iter(em_iter), G(G), t(t), delta(delta), X(X), show_output(show_output), use_W(use_W), better_initial_values(better_initial_values), N_em(N_em), Niter_em(Niter_em) {}
-  
-  void operator()(std::size_t begin, std::size_t end) {
-    for (std::size_t i = begin; i < end; ++i) {
-      usleep(5000 * i); // avoid racing conditions
-      out.slice(i) = lognormal_mixture_gibbs_implementation_augF(Niter, em_iter, G, t, delta, X, seeds(i), show_output, i + 1, use_W, better_initial_values, Niter_em, N_em);
-    }
-  }
-};
-
 // Function to call lognormal_mixture_gibbs_implementation with parallellization
 // [[Rcpp::export]]
-arma::cube lognormal_mixture_gibbs(const int& Niter, const int& em_iter, const int& G,
+arma::mat lognormal_mixture_gibbs(const int& Niter, const int& em_iter, const int& G,
                                    const arma::vec& t, const arma::ivec& delta, 
                                    const arma::mat& X,
-                                   const arma::vec& starting_seed, const bool& show_output,
-                                   const int& n_chains, const bool& use_W,
+                                   const long long int& starting_seed, const bool& show_output,
+                                   const int& chain_num, const bool& use_W,
                                    const bool& better_initial_values, const int& N_em, const int& Niter_em, const bool& fast_groups,
                                    const bool& data_augmentation) {
-  arma::cube out(Niter, (X.n_cols + 2) * G, n_chains); // initializing output object
-  
+  arma::mat out(Niter, (X.n_cols + 2) * G); // initializing output object
+
   // Fitting in parallel
   if(data_augmentation) {
-    GibbsWorker worker(starting_seed, out, Niter, em_iter, G, t, delta, X, show_output, use_W, better_initial_values, N_em, Niter_em, fast_groups);
-    RcppParallel::parallelFor(0, n_chains, worker);
+    out = lognormal_mixture_gibbs_implementation(Niter, em_iter, G, t, delta, X, starting_seed, show_output, chain_num, use_W, better_initial_values, Niter_em, N_em, fast_groups);
   } else {
-    GibbsWorkerAugF worker(starting_seed, out, Niter, em_iter, G, t, delta, X, show_output, use_W, better_initial_values, N_em, Niter_em);
-    RcppParallel::parallelFor(0, n_chains, worker);
+    out = lognormal_mixture_gibbs_implementation_augF(Niter, em_iter, G, t, delta, X, starting_seed, show_output, chain_num, use_W, better_initial_values, Niter_em, N_em);
   }
   
   return out;

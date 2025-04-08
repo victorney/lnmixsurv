@@ -393,24 +393,36 @@ run_posterior_samples <- function(iter, em_iter, chains, cores,
                                   data_augmentation) {
   set.seed(starting_seed)
   seeds <- sample(1:2^28, chains)
-
+  
   list_posteriors <- NULL
+  
+  if (chains > 1 & cores > 1) {
+    future::plan(future::multisession, gc = TRUE, workers = cores)
+  } else if (chains > 1 & cores == 1) {
+    future::plan(future::sequential, gc = TRUE)
+  }
 
-  RcppParallel::setThreadOptions(cores)
-
-  posterior <- lognormal_mixture_gibbs(
-    iter, em_iter, mixture_components,
-    outcome_times, outcome_status,
-    predictors,
-    seeds, show_progress,
-    chains, use_W,
-    better_initial_values, number_em_search, 
-    iterations_em_search, fast_groups,
-    data_augmentation
+  posterior <- future.apply::future_lapply(
+    1:chains,
+    function(i) {
+      posterior <- lognormal_mixture_gibbs(
+        iter, em_iter, mixture_components,
+        outcome_times, outcome_status,
+        predictors,
+        seeds[i], show_progress,
+        i, use_W,
+        better_initial_values, number_em_search, 
+        iterations_em_search, fast_groups,
+        data_augmentation
+      )
+      
+      return(posterior)
+    },
+    future.seed = TRUE
   )
 
   for (i in 1:chains) {
-    posterior_chain_i <- as.data.frame(posterior[, , i])
+    posterior_chain_i <- as.data.frame(posterior[[i]])
 
     posterior_chain_i <- give_colnames(
       posterior_chain_i,

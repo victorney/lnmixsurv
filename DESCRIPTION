@@ -22,11 +22,12 @@ Imports:
     purrr,
     tidyr,
     tibble,
-    Rcpp,
-    RcppParallel,
+    Rcpp (>= 1.0.14),
+    future,
+    future.apply,
     tidyselect,
     broom
-LinkingTo: Rcpp, RcppArmadillo, RcppParallel
+LinkingTo: Rcpp, RcppArmadillo
 Depends: 
     parsnip (>= 1.1.0),
     R (>= 4.1.0),
