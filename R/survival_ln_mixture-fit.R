@@ -28,13 +28,13 @@
 #'
 #' @param starting_seed Starting seed for the sampler. If not specified by the user, uses a random integer between 1 and 2^28 This way we ensure, when the user sets a seed in R, that this is passed into the C++ code.
 #'
-#' @param use_W Specifies is the W (groups weight's matrix for each observation) should be used from EM. It holds W constant through the MCMC, resulting in a faster Bayesian Inference (close to what Empirical Bayes would do). It may helps generating credible intervals for the survival and hazard curves, using the information from the previous EM iteration. Make sure the EM have converged before setting this parameter to true. In doubt, leave this as FALSE, the default.
+#' @param use_W Deprecated. Setting to TRUE or FALSE will cause no difference.
 #'
 #' @param number_em_search Number of different EM's to search for maximum likelihoods. Recommended to leave, at least, at 100. This value can be set to 0 to disable the search for maximum likelihood initial values.
 #'
 #' @param iteration_em_search Number of iterations for each of the EM's used to find the maximum likelihoods. Recommended to leave at small values, such as from 1 to 5.
 #'
-#' @param fast_groups Use fast computation of groups allocations probabilities, defaults to TRUE. Setting it to FALSE can increase the computation time (a lot) but it's worth trying if the chains are not converging.
+#' @param fast_groups Deprecated.  Setting to TRUE or FALSE will cause no difference.
 #' 
 #' @param data_augmentation Defaults to TRUE. If sets to FALSE, traditional inference is made using complete likelihood with the survival function.
 #'
@@ -399,14 +399,19 @@ run_posterior_samples <- function(iter, em_iter, chains, cores,
   RcppParallel::setThreadOptions(cores)
 
   posterior <- lognormal_mixture_gibbs(
-    iter, em_iter, mixture_components,
-    outcome_times, outcome_status,
-    predictors,
-    seeds, show_progress,
-    chains, use_W,
-    better_initial_values, number_em_search, 
-    iterations_em_search, fast_groups,
-    data_augmentation
+    Niter = iter,
+    em_iter = em_iter,
+    G = mixture_components,
+    t = outcome_times,
+    delta = outcome_status,
+    X = predictors,
+    starting_seed = seeds,
+    show_output = show_progress,
+    n_chain = chains,
+    better_initial_values = better_initial_values,
+    N_em = number_em_search, 
+    Niter_em = iterations_em_search,
+    data_augmentation = data_augmentation
   )
 
   for (i in 1:chains) {

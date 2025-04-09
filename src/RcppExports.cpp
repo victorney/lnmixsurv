@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // lognormal_mixture_gibbs
-arma::cube lognormal_mixture_gibbs(const int& Niter, const int& em_iter, const int& G, const arma::vec& t, const arma::ivec& delta, const arma::mat& X, const arma::vec& starting_seed, const bool& show_output, const int& n_chains, const bool& use_W, const bool& better_initial_values, const int& N_em, const int& Niter_em, const bool& fast_groups, const bool& data_augmentation);
-RcppExport SEXP _lnmixsurv_lognormal_mixture_gibbs(SEXP NiterSEXP, SEXP em_iterSEXP, SEXP GSEXP, SEXP tSEXP, SEXP deltaSEXP, SEXP XSEXP, SEXP starting_seedSEXP, SEXP show_outputSEXP, SEXP n_chainsSEXP, SEXP use_WSEXP, SEXP better_initial_valuesSEXP, SEXP N_emSEXP, SEXP Niter_emSEXP, SEXP fast_groupsSEXP, SEXP data_augmentationSEXP) {
+arma::cube lognormal_mixture_gibbs(const int& Niter, const int& em_iter, const int& G, const arma::vec& t, const arma::ivec& delta, const arma::mat& X, const arma::vec& starting_seed, const bool& show_output, const int& n_chains, const bool& better_initial_values, const int& N_em, const int& Niter_em, const bool& data_augmentation);
+RcppExport SEXP _lnmixsurv_lognormal_mixture_gibbs(SEXP NiterSEXP, SEXP em_iterSEXP, SEXP GSEXP, SEXP tSEXP, SEXP deltaSEXP, SEXP XSEXP, SEXP starting_seedSEXP, SEXP show_outputSEXP, SEXP n_chainsSEXP, SEXP better_initial_valuesSEXP, SEXP N_emSEXP, SEXP Niter_emSEXP, SEXP data_augmentationSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,13 +26,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type starting_seed(starting_seedSEXP);
     Rcpp::traits::input_parameter< const bool& >::type show_output(show_outputSEXP);
     Rcpp::traits::input_parameter< const int& >::type n_chains(n_chainsSEXP);
-    Rcpp::traits::input_parameter< const bool& >::type use_W(use_WSEXP);
     Rcpp::traits::input_parameter< const bool& >::type better_initial_values(better_initial_valuesSEXP);
     Rcpp::traits::input_parameter< const int& >::type N_em(N_emSEXP);
     Rcpp::traits::input_parameter< const int& >::type Niter_em(Niter_emSEXP);
-    Rcpp::traits::input_parameter< const bool& >::type fast_groups(fast_groupsSEXP);
     Rcpp::traits::input_parameter< const bool& >::type data_augmentation(data_augmentationSEXP);
-    rcpp_result_gen = Rcpp::wrap(lognormal_mixture_gibbs(Niter, em_iter, G, t, delta, X, starting_seed, show_output, n_chains, use_W, better_initial_values, N_em, Niter_em, fast_groups, data_augmentation));
+    rcpp_result_gen = Rcpp::wrap(lognormal_mixture_gibbs(Niter, em_iter, G, t, delta, X, starting_seed, show_output, n_chains, better_initial_values, N_em, Niter_em, data_augmentation));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -138,7 +136,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_lnmixsurv_lognormal_mixture_gibbs", (DL_FUNC) &_lnmixsurv_lognormal_mixture_gibbs, 15},
+    {"_lnmixsurv_lognormal_mixture_gibbs", (DL_FUNC) &_lnmixsurv_lognormal_mixture_gibbs, 13},
     {"_lnmixsurv_lognormal_mixture_em_implementation", (DL_FUNC) &_lnmixsurv_lognormal_mixture_em_implementation, 10},
     {"_lnmixsurv_predict_survival_em_cpp", (DL_FUNC) &_lnmixsurv_predict_survival_em_cpp, 5},
     {"_lnmixsurv_predict_hazard_em_cpp", (DL_FUNC) &_lnmixsurv_predict_hazard_em_cpp, 5},
