@@ -87,16 +87,16 @@
 <span><span class="co">#&gt;  mixture groups: 2</span></span>
 <span><span class="co">#&gt; ------------------</span></span>
 <span><span class="co">#&gt;                estimate   std.error  cred.low cred.high</span></span>
-<span><span class="co">#&gt; (Intercept)_1 4.0444567 0.006752118 4.0317181 4.0587533</span></span>
-<span><span class="co">#&gt; x1_1          0.8086985 0.010127661 0.7909781 0.8272197</span></span>
-<span><span class="co">#&gt; (Intercept)_2 3.4282326 0.019544667 3.3904115 3.4652290</span></span>
-<span><span class="co">#&gt; x1_2          0.4893303 0.021170736 0.4487190 0.5349711</span></span>
+<span><span class="co">#&gt; (Intercept)_1 4.0449947 0.006328355 4.0328401 4.0575114</span></span>
+<span><span class="co">#&gt; x1_1          0.8076896 0.008957957 0.7902177 0.8263608</span></span>
+<span><span class="co">#&gt; (Intercept)_2 3.4247444 0.020641770 3.3843547 3.4621821</span></span>
+<span><span class="co">#&gt; x1_2          0.4873370 0.021854619 0.4474952 0.5300535</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Auxiliary parameter(s):</span></span>
 <span><span class="co">#&gt;         estimate  std.error   cred.low  cred.high</span></span>
-<span><span class="co">#&gt; phi_1 26.6470388 1.29698454 24.0778404 29.2549254</span></span>
-<span><span class="co">#&gt; phi_2  3.1688235 0.10724642  2.9624471  3.4010206</span></span>
-<span><span class="co">#&gt; eta_1  0.5059346 0.01273968  0.4809533  0.5269689</span></span></code></pre></div>
+<span><span class="co">#&gt; phi_1 26.5488043 1.28082231 24.2082675 29.0570705</span></span>
+<span><span class="co">#&gt; phi_2  3.1866799 0.11825521  2.9824075  3.4219738</span></span>
+<span><span class="co">#&gt; eta_1  0.5069122 0.01271494  0.4841704  0.5311532</span></span></code></pre></div>
 <p>Tidymodels approach:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/tidymodels/censored" class="external-link">censored</a></span><span class="op">)</span></span>
@@ -118,18 +118,18 @@
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 3</span></span></span>
 <span><span class="co">#&gt;   term          estimate std.error</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> (Intercept)_1    4.04    0.006<span style="text-decoration: underline;">75</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> x1_1             0.809   0.010<span style="text-decoration: underline;">1</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> (Intercept)_2    3.43    0.019<span style="text-decoration: underline;">5</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> x1_2             0.489   0.021<span style="text-decoration: underline;">2</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> (Intercept)_1    4.04    0.006<span style="text-decoration: underline;">33</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> x1_1             0.808   0.008<span style="text-decoration: underline;">96</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> (Intercept)_2    3.42    0.020<span style="text-decoration: underline;">6</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> x1_2             0.487   0.021<span style="text-decoration: underline;">9</span></span></span>
 <span><span class="fu"><a href="https://generics.r-lib.org/reference/tidy.html" class="external-link">tidy</a></span><span class="op">(</span><span class="va">mod2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 3</span></span></span>
 <span><span class="co">#&gt;   term          estimate std.error</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> (Intercept)_1    4.04    0.006<span style="text-decoration: underline;">75</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> x1_1             0.809   0.010<span style="text-decoration: underline;">1</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> (Intercept)_2    3.43    0.019<span style="text-decoration: underline;">5</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> x1_2             0.489   0.021<span style="text-decoration: underline;">2</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> (Intercept)_1    4.04    0.006<span style="text-decoration: underline;">33</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> x1_1             0.808   0.008<span style="text-decoration: underline;">96</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> (Intercept)_2    3.42    0.020<span style="text-decoration: underline;">6</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> x1_2             0.487   0.021<span style="text-decoration: underline;">9</span></span></span></code></pre></div>
 <p>The predictions can be easily obtained from a fit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
