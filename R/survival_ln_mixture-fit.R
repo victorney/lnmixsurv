@@ -28,13 +28,15 @@
 #'
 #' @param starting_seed Starting seed for the sampler. If not specified by the user, uses a random integer between 1 and 2^28 This way we ensure, when the user sets a seed in R, that this is passed into the C++ code.
 #'
-#' @param use_W Specifies is the W (groups weight's matrix for each observation) should be used from EM. It holds W constant through the code, resulting in a faster Bayesian Inference (close to what Empirical Bayes would do). It may helps generating credible intervals for the survival and hazard curves, using the information from the previous EM iteration. Make sure the EM have converged before setting this parameter to true. In doubt, leave this as FALSE, the default.
+#' @param use_W Deprecated. Setting to TRUE or FALSE will cause no difference.
 #'
 #' @param number_em_search Number of different EM's to search for maximum likelihoods. Recommended to leave, at least, at 100. This value can be set to 0 to disable the search for maximum likelihood initial values.
 #'
 #' @param iteration_em_search Number of iterations for each of the EM's used to find the maximum likelihoods. Recommended to leave at small values, such as from 1 to 5.
 #'
-#' @param fast_groups Use fast computation of groups allocations probabilities, defaults to TRUE. Setting it to FALSE can increase the computation time (a lot) but it's worth trying if the chains are not converging.
+#' @param fast_groups Deprecated.  Setting to TRUE or FALSE will cause no difference.
+#' 
+#' @param data_augmentation Defaults to TRUE. If sets to FALSE, traditional inference is made using complete likelihood with the survival function.
 #'
 #' @param ... Not currently used, but required for extensibility.
 #'
@@ -58,7 +60,7 @@
 #' mod <- survival_ln_mixture(Surv(time, status == 2) ~ NULL, lung, intercept = TRUE)
 #'
 #' @export
-survival_ln_mixture <- function(formula, data, intercept = TRUE, iter = 1000, warmup = floor(iter / 10), thin = 1, chains = 1, cores = 1, mixture_components = 2, show_progress = FALSE, em_iter = 0, starting_seed = sample(1:2^28, 1), use_W = FALSE, number_em_search = 200, iteration_em_search = 1, fast_groups = TRUE, ...) {
+survival_ln_mixture <- function(formula, data, intercept = TRUE, iter = 1000, warmup = floor(iter / 10), thin = 1, chains = 1, cores = 1, mixture_components = 2, show_progress = FALSE, em_iter = 0, starting_seed = sample(1:2^28, 1), use_W = FALSE, number_em_search = 200, iteration_em_search = 1, fast_groups = TRUE, data_augmentation = TRUE, ...) {
   rlang::check_dots_empty(...)
   UseMethod("survival_ln_mixture")
 }
@@ -119,7 +121,8 @@ survival_ln_mixture_impl <- function(predictors, outcome_times,
                                      use_W = FALSE,
                                      number_em_search = 200,
                                      iteration_em_search = 1,
-                                     fast_groups = TRUE) {
+                                     fast_groups = TRUE,
+                                     data_augmentation = TRUE) {
   number_of_predictors <- ncol(predictors)
 
   if (any(is.na(predictors))) {
@@ -157,6 +160,10 @@ survival_ln_mixture_impl <- function(predictors, outcome_times,
 
   if (!is.logical(fast_groups)) {
     rlang::abort("The parameter fast_groups must be TRUE or FALSE.")
+  }
+  
+  if (!is.logical(data_augmentation)) {
+    rlang::abort("The parameter data_augmentation must be TRUE or FALSE.")
   }
 
   if (number_em_search < 0 | (number_em_search %% 1) != 0) {
@@ -206,7 +213,7 @@ survival_ln_mixture_impl <- function(predictors, outcome_times,
 
   better_initial_values <- as.logical((em_iter > 0) & (number_em_search > 0))
 
-  posterior_dist <- run_posterior_samples(iter, em_iter, chains, cores, mixture_components, outcome_times, outcome_status, predictors, starting_seed, show_progress, warmup, thin, use_W, better_initial_values, number_em_search, iteration_em_search, fast_groups)
+  posterior_dist <- run_posterior_samples(iter, em_iter, chains, cores, mixture_components, outcome_times, outcome_status, predictors, starting_seed, show_progress, warmup, thin, use_W, better_initial_values, number_em_search, iteration_em_search, fast_groups, data_augmentation)
 
   # returning the function output
   list(
@@ -371,7 +378,7 @@ permute_columns <- function(posterior) {
 #' @param thin thinning das cadeias
 #'
 #' @param use_W indica se deve utilizar Empirical Bayes, mantendo a matriz W do EM constante
-#'
+#' 
 #' @return matriz
 #'
 #' @noRd
@@ -382,7 +389,8 @@ run_posterior_samples <- function(iter, em_iter, chains, cores,
                                   outcome_status, predictors, starting_seed,
                                   show_progress, warmup, thin, use_W,
                                   better_initial_values, number_em_search,
-                                  iterations_em_search, fast_groups) {
+                                  iterations_em_search, fast_groups,
+                                  data_augmentation) {
   set.seed(starting_seed)
   seeds <- sample(1:2^28, chains)
 
@@ -391,13 +399,19 @@ run_posterior_samples <- function(iter, em_iter, chains, cores,
   RcppParallel::setThreadOptions(cores)
 
   posterior <- lognormal_mixture_gibbs(
-    iter, em_iter, mixture_components,
-    outcome_times, outcome_status,
-    predictors,
-    seeds, show_progress,
-    chains, use_W,
-    better_initial_values, number_em_search, iterations_em_search,
-    fast_groups
+    Niter = iter,
+    em_iter = em_iter,
+    G = mixture_components,
+    t = outcome_times,
+    delta = outcome_status,
+    X = predictors,
+    starting_seed = seeds,
+    show_output = show_progress,
+    n_chain = chains,
+    better_initial_values = better_initial_values,
+    N_em = number_em_search, 
+    Niter_em = iterations_em_search,
+    data_augmentation = data_augmentation
   )
 
   for (i in 1:chains) {
